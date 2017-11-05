@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan base-package="com.whz.springmybatis"/>
+
+    <import resource="applicationContext.xml"/>
+
+    <!-- 注册Annotation -->
+    <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping"/>
+
+    <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+        <property name="messageConverters">
+            <list>
+                <ref bean="mappingJacksonHttpMessageConverter"/><!-- json转换器 -->
+            </list>
+        </property>
+    </bean>
+
+    <bean name="mappingJacksonHttpMessageConverter"
+          class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter"/>
+
+    <!-- 跳转视图配置 -->
+    <bean name="viewResolver"
+          class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass">
+            <value>org.springframework.web.servlet.view.JstlView</value>
+        </property>
+        <property name="prefix">
+            <value>/WEB-INF/jsp/</value>
+        </property>
+        <property name="suffix">
+            <value>.jsp</value>
+        </property>
+    </bean>
+
+    <!-- 设置全局异常处理方式。！注意，如果使用XML配置了异常处理方式， 那么使用Annotation处理异常的方式将不再被使用。  -->
+    <bean name="exceptionResolver"
+          class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+        <property name="exceptionMappings">
+            <props>
+                <!-- 这里的errorPage同样应用viewResolver的前缀、后缀匹配 -->
+                <prop key="java.lang.Exception">errorPage</prop>
+            </props>
+        </property>
+    </bean>
+
+    <!--<bean name="UserController" class="com.whz.springmybatis.view.UserController" scope="prototype">-->
+    <!--<property name="userService" ref="userService"/>-->
+    <!--<property name="addressService" ref="addressService"/>-->
+    <!--</bean>-->
+
+    <!--<bean name="AddressController" class="com.whz.springmybatis.view.AddressController" scope="prototype">-->
+    <!--<property name="userService" ref="userService"/>-->
+    <!--<property name="addressService" ref="addressService"/>-->
+    <!--</bean>-->
+
+</beans>

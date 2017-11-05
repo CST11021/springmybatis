@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+						http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.0.xsd
+						http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.0.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd"
+       default-autowire="byType">
+
+    <context:component-scan base-package="com.whz.springmybatis"/>
+
+    <!-- 数据源配置 -->
+    <bean name="dataSource"
+          class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName">
+            <value>com.mysql.jdbc.Driver</value>
+        </property>
+        <property name="url">
+            <value>jdbc:mysql://127.0.0.1:3306/test?useUnicode=true&amp;characterEncoding=UTF-8</value>
+        </property>
+        <property name="username">
+            <value>root</value>
+        </property>
+        <property name="password">
+            <value>123456</value>
+        </property>
+    </bean>
+
+    <!-- MyBatis SqlSession配置 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="configLocation" value="classpath:mybatis_config/Configuration.xml"></property>
+    </bean>
+
+
+    <!--1.0.0-RC2版本及以下低版本的mybatis-spring.jar包使用这种方式注入mapper，同时每个Mapper接口需添加@Mapper注解，高版本的包中删除了@Mapper注解-->
+    <!-- 低版本的mybatis配置文件和高版本的有一些细节上的区别，比如：在高版本配置<setting name="logImpl" value="SLF4J"/>，低版本没有改配置，如果配置了会报错-->
+    <!--<bean class="org.mybatis.spring.annotation.MapperScannerPostProcessor">-->
+        <!--<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>-->
+        <!--<property name="basePackage" value="com.whz.springmybatis.dao"/>-->
+    <!--</bean>-->
+
+
+    <!--方法一：DAO接口所在包名，Spring会自动查找其下的类-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.whz.springmybatis.dao" />
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+    </bean>
+
+    <!--方法二：将mapper接口一个个注入-->
+    <!--<bean id="userDao" class="org.mybatis.spring.mapper.MapperFactoryBean">-->
+        <!--<property name="sqlSessionFactory" ref="sqlSessionFactory"/>-->
+        <!--<property name="mapperInterface" value="com.whz.springmybatis.dao.UserDao"></property>-->
+    <!--</bean>-->
+    <!--<bean id="addressDao" class="org.mybatis.spring.mapper.MapperFactoryBean">-->
+        <!--<property name="sqlSessionFactory" ref="sqlSessionFactory"/>-->
+        <!--<property name="mapperInterface" value="com.whz.springmybatis.dao.AddressDao"></property>-->
+    <!--</bean>-->
+
+
+
+
+
+
+
+
+    <!-- ================================= 事务控制相关 ============================================= -->
+    <bean name="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <tx:method name="delete*" propagation="REQUIRED" read-only="false"
+                       rollback-for="java.lang.Exception" no-rollback-for="java.lang.RuntimeException"/>
+            <tx:method name="insert*" propagation="REQUIRED" read-only="false"
+                       rollback-for="java.lang.RuntimeException"/>
+            <tx:method name="update*" propagation="REQUIRED" read-only="false"
+                       rollback-for="java.lang.Exception"/>
+
+            <tx:method name="find*" propagation="SUPPORTS"/>
+            <tx:method name="get*" propagation="SUPPORTS"/>
+            <tx:method name="select*" propagation="SUPPORTS"/>
+        </tx:attributes>
+    </tx:advice>
+    <aop:config>
+        <aop:pointcut id="pc" expression="execution(* *.*.*(..))"/>
+        <aop:advisor pointcut-ref="pc" advice-ref="txAdvice"/>
+    </aop:config>
+
+    <!--<bean name="userService" class="com.whz.springmybatis.service.impl.UserServiceImpl" scope="prototype">-->
+    <!--<property name="userDao" ref="userDao" />-->
+    <!--<property name="addressDao" ref="addressDao" />-->
+    <!--</bean>-->
+
+    <!--<bean name="addressService" class="com.whz.springmybatis.service.impl.AddressServiceImpl" scope="prototype">-->
+    <!--<property name="addressDao" ref="addressDao" />-->
+    <!--</bean>-->
+
+</beans>
