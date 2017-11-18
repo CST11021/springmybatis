@@ -140,22 +140,20 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             definition = (GenericBeanDefinition)holder.getBeanDefinition();
 
             if (logger.isDebugEnabled()) {
-                logger.debug("Creating MapperFactoryBean with name '" + holder.getBeanName() + "' and '" + definition
-                        .getBeanClassName() + "' mapperInterface");
+                logger.debug("Creating MapperFactoryBean with name '" + holder.getBeanName()
+                             + "' and '" + definition.getBeanClassName() + "' mapperInterface");
             }
 
-            // the mapper interface is the original class of the bean
-            // but, the actual class of the bean is MapperFactoryBean
-            definition.getConstructorArgumentValues().addGenericArgumentValue(
-                    definition.getBeanClassName()); // issue #59
+            // the mapper interface is the original class of the bean but, the actual class of the bean is MapperFactoryBean
+            definition.getConstructorArgumentValues().addGenericArgumentValue(definition.getBeanClassName()); // issue #59
+            // 修改注册类的beanclass属性为代理类MapperFactoryBean
+            // 这里修改了mapper接口类的beandefination中的beanclass为MapperFactoryBean，它则负责生产数据类操作代理类，实际mapper接口类作为构造函数传入了 。由于只修改了beanclass,没有修改beanname，所以我们从容器中获取时候无感知的。
             definition.setBeanClass(this.mapperFactoryBean.getClass());
-
             definition.getPropertyValues().add("addToConfig", this.addToConfig);
 
             boolean explicitFactoryUsed = false;
             if (StringUtils.hasText(this.sqlSessionFactoryBeanName)) {
-                definition.getPropertyValues().add("sqlSessionFactory",
-                                                   new RuntimeBeanReference(this.sqlSessionFactoryBeanName));
+                definition.getPropertyValues().add("sqlSessionFactory", new RuntimeBeanReference(this.sqlSessionFactoryBeanName));
                 explicitFactoryUsed = true;
             } else if (this.sqlSessionFactory != null) {
                 definition.getPropertyValues().add("sqlSessionFactory", this.sqlSessionFactory);
@@ -164,16 +162,13 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
             if (StringUtils.hasText(this.sqlSessionTemplateBeanName)) {
                 if (explicitFactoryUsed) {
-                    logger.warn(
-                            "Cannot use both: sqlSessionTemplate and sqlSessionFactory together. sqlSessionFactory is ignored.");
+                    logger.warn("Cannot use both: sqlSessionTemplate and sqlSessionFactory together. sqlSessionFactory is ignored.");
                 }
-                definition.getPropertyValues().add("sqlSessionTemplate",
-                                                   new RuntimeBeanReference(this.sqlSessionTemplateBeanName));
+                definition.getPropertyValues().add("sqlSessionTemplate", new RuntimeBeanReference(this.sqlSessionTemplateBeanName));
                 explicitFactoryUsed = true;
             } else if (this.sqlSessionTemplate != null) {
                 if (explicitFactoryUsed) {
-                    logger.warn(
-                            "Cannot use both: sqlSessionTemplate and sqlSessionFactory together. sqlSessionFactory is ignored.");
+                    logger.warn("Cannot use both: sqlSessionTemplate and sqlSessionFactory together. sqlSessionFactory is ignored.");
                 }
                 definition.getPropertyValues().add("sqlSessionTemplate", this.sqlSessionTemplate);
                 explicitFactoryUsed = true;
@@ -181,8 +176,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
             if (!explicitFactoryUsed) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Enabling autowire by type for MapperFactoryBean with name '" + holder.getBeanName()
-                                 + "'.");
+                    logger.debug("Enabling autowire by type for MapperFactoryBean with name '" + holder.getBeanName() + "'.");
                 }
                 definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
             }

@@ -91,6 +91,7 @@ import org.springframework.util.StringUtils;
  * @see MapperFactoryBean
  * @see ClassPathMapperScanner
  */
+// 参考：http://www.importnew.com/27207.html
 public class MapperScannerConfigurer
         implements BeanDefinitionRegistryPostProcessor, InitializingBean, ApplicationContextAware, BeanNameAware {
 
@@ -124,6 +125,7 @@ public class MapperScannerConfigurer
         // left intentionally blank
     }
     // 在完成 BeanDefinition 注册后，实例化bean之前调用，允许修改BeanDefinition的信息，registry用于被ApplicationContext调用
+    // 在bean注册到ioc后创建实例前修改bean定义和新增bean注册，这个是在context的refresh方法调用
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
         if (this.processPropertyPlaceHolders) {
