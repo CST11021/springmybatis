@@ -80,6 +80,7 @@ public class SqlSessionFactoryBean
 
     /** 表示mybatis的配置文件路径 */
     private Resource configLocation;
+    // Mybatis配置对象
     private Configuration configuration;
     /** 表示mapper配置文件路径*/
     private Resource[] mapperLocations;
@@ -268,7 +269,7 @@ public class SqlSessionFactoryBean
         return this.sqlSessionFactoryBuilder.build(configuration);
     }
 
-
+    // 工厂Bean 接口
     @Override
     public SqlSessionFactory getObject() throws Exception {
         if (this.sqlSessionFactory == null) {
@@ -287,6 +288,7 @@ public class SqlSessionFactoryBean
     }
 
 
+    // Spring 事件监听接口
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
         if (failFast && event instanceof ContextRefreshedEvent) {

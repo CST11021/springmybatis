@@ -74,6 +74,7 @@ import org.springframework.dao.support.PersistenceExceptionTranslator;
  * @see SqlSessionFactory
  * @see MyBatisExceptionTranslator
  */
+// SqlSessionTemplate 实现了 SqlSession 接口，所以该类可以用于执行增删改查的功能
 public class SqlSessionTemplate implements SqlSession, DisposableBean {
 
     private final SqlSessionFactory sqlSessionFactory;
@@ -84,45 +85,15 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
 
     private final PersistenceExceptionTranslator exceptionTranslator;
 
-    /**
-     * Constructs a Spring managed SqlSession with the {@code SqlSessionFactory}
-     * provided as an argument.
-     *
-     * @param sqlSessionFactory
-     */
+
     public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory) {
         this(sqlSessionFactory, sqlSessionFactory.getConfiguration().getDefaultExecutorType());
     }
-
-    /**
-     * Constructs a Spring managed SqlSession with the {@code SqlSessionFactory}
-     * provided as an argument and the given {@code ExecutorType}
-     * {@code ExecutorType} cannot be changed once the {@code SqlSessionTemplate}
-     * is constructed.
-     *
-     * @param sqlSessionFactory
-     * @param executorType
-     */
     public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory, ExecutorType executorType) {
         this(sqlSessionFactory, executorType,
              new MyBatisExceptionTranslator(sqlSessionFactory.getConfiguration().getEnvironment().getDataSource(),
                                             true));
     }
-
-    /**
-     * Constructs a Spring managed {@code SqlSession} with the given
-     * {@code SqlSessionFactory} and {@code ExecutorType}.
-     * A custom {@code SQLExceptionTranslator} can be provided as an
-     * argument so any {@code PersistenceException} thrown by MyBatis
-     * can be custom translated to a {@code RuntimeException}
-     * The {@code SQLExceptionTranslator} can also be null and thus no
-     * exception translation will be done and MyBatis exceptions will be
-     * thrown
-     *
-     * @param sqlSessionFactory
-     * @param executorType
-     * @param exceptionTranslator
-     */
     public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory, ExecutorType executorType,
                               PersistenceExceptionTranslator exceptionTranslator) {
 
@@ -236,158 +207,78 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
     public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
         return this.sqlSessionProxy.<E>selectList(statement, parameter, rowBounds);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void select(String statement, ResultHandler handler) {
         this.sqlSessionProxy.select(statement, handler);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void select(String statement, Object parameter, ResultHandler handler) {
         this.sqlSessionProxy.select(statement, parameter, handler);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void select(String statement, Object parameter, RowBounds rowBounds, ResultHandler handler) {
         this.sqlSessionProxy.select(statement, parameter, rowBounds, handler);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int insert(String statement) {
         return this.sqlSessionProxy.insert(statement);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int insert(String statement, Object parameter) {
         return this.sqlSessionProxy.insert(statement, parameter);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int update(String statement) {
         return this.sqlSessionProxy.update(statement);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int update(String statement, Object parameter) {
         return this.sqlSessionProxy.update(statement, parameter);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int delete(String statement) {
         return this.sqlSessionProxy.delete(statement);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int delete(String statement, Object parameter) {
         return this.sqlSessionProxy.delete(statement, parameter);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <T> T getMapper(Class<T> type) {
         return getConfiguration().getMapper(type, this);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void commit() {
         throw new UnsupportedOperationException("Manual commit is not allowed over a Spring managed SqlSession");
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void commit(boolean force) {
         throw new UnsupportedOperationException("Manual commit is not allowed over a Spring managed SqlSession");
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void rollback() {
         throw new UnsupportedOperationException("Manual rollback is not allowed over a Spring managed SqlSession");
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void rollback(boolean force) {
         throw new UnsupportedOperationException("Manual rollback is not allowed over a Spring managed SqlSession");
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void close() {
         throw new UnsupportedOperationException("Manual close is not allowed over a Spring managed SqlSession");
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void clearCache() {
         this.sqlSessionProxy.clearCache();
     }
-
-    /**
-     * {@inheritDoc}
-     *
-     */
     @Override
     public Configuration getConfiguration() {
         return this.sqlSessionFactory.getConfiguration();
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Connection getConnection() {
         return this.sqlSessionProxy.getConnection();
     }
-
-    /**
-     * {@inheritDoc}
-     *
-     * @since 1.0.2
-     *
-     */
     @Override
     public List<BatchResult> flushStatements() {
         return this.sqlSessionProxy.flushStatements();

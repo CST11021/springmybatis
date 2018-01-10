@@ -33,18 +33,16 @@ import org.springframework.transaction.support.ResourceHolderSupport;
  */
 public final class SqlSessionHolder extends ResourceHolderSupport {
 
+    // Mybatis的会话对象
     private final SqlSession sqlSession;
 
+    // 执行器类型
     private final ExecutorType executorType;
 
+    // 持久化异常转换器
     private final PersistenceExceptionTranslator exceptionTranslator;
 
-    /**
-     * Creates a new holder instance.
-     *
-     * @param sqlSession the {@code SqlSession} has to be hold.
-     * @param executorType the {@code ExecutorType} has to be hold.
-     */
+
     public SqlSessionHolder(SqlSession sqlSession, ExecutorType executorType,
                             PersistenceExceptionTranslator exceptionTranslator) {
 
@@ -56,14 +54,13 @@ public final class SqlSessionHolder extends ResourceHolderSupport {
         this.exceptionTranslator = exceptionTranslator;
     }
 
+    // getter ...
     public SqlSession getSqlSession() {
         return sqlSession;
     }
-
     public ExecutorType getExecutorType() {
         return executorType;
     }
-
     public PersistenceExceptionTranslator getPersistenceExceptionTranslator() {
         return exceptionTranslator;
     }

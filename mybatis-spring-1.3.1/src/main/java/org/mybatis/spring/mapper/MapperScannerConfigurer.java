@@ -126,6 +126,8 @@ public class MapperScannerConfigurer
     }
     // 在完成 BeanDefinition 注册后，实例化bean之前调用，允许修改BeanDefinition的信息，registry用于被ApplicationContext调用
     // 在bean注册到ioc后创建实例前修改bean定义和新增bean注册，这个是在context的refresh方法调用
+    // Spring在解析完配置文件后，会调用BeanDefinitionRegistryPostProcessor#postProcessBeanDefinitionRegistry()方法
+    //
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
         if (this.processPropertyPlaceHolders) {
