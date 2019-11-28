@@ -57,18 +57,20 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
     private boolean addToConfig = true;
 
-    // 会话工厂，用于创建会话
+    /** Mybastic的会话工厂，用于创建会话 */
     private SqlSessionFactory sqlSessionFactory;
+    /** 表示Mybastic会话工厂的Bean名称 */
     private String sqlSessionFactoryBeanName;
 
-    // SqlSessionTemplate 实现了Mybatis的SqlSession接口，所以该类可以用于执行增删改查操作
+    /** SqlSessionTemplate 实现了Mybatis的SqlSession接口，所以该类可以用于执行增删改查操作 */
     private SqlSessionTemplate sqlSessionTemplate;
+    /** SqlSessionTemplate的Bean名称 */
     private String sqlSessionTemplateBeanName;
 
     private Class<? extends Annotation> annotationClass;
     private Class<?> markerInterface;
 
-    // MapperFactoryBean是一个Spring的工厂Bean，用于创建Mapper接口的实现类
+    /** MapperFactoryBean是一个Spring的工厂Bean，用于创建Mapper接口的实现类 */
     private MapperFactoryBean<?> mapperFactoryBean = new MapperFactoryBean<Object>();
 
     public ClassPathMapperScanner(BeanDefinitionRegistry registry) {
@@ -123,7 +125,12 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
         });
     }
 
-    // 扫描指定包路径下的Mapper接口
+    /**
+     * 扫描指定包路径下的Mapper接口
+     *
+     * @param basePackages
+     * @return
+     */
     @Override
     public Set<BeanDefinitionHolder> doScan(String... basePackages) {
         // 扫描mybatis中所有的DAO接口，并解析为BeanDefinition
@@ -140,8 +147,13 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
         return beanDefinitions;
     }
 
-    // 修改Mapper接口对象对应的BeanDefinition的信息
-    // 主要是：1、修改注册类的beanclass属性为代理类MapperFactoryBean  2、设置 Mapper实例内部的 SqlSessionFactory 对象
+    /**
+     * 修改Mapper接口对象对应的BeanDefinition的信息，主要是：
+     * 1、修改注册类的beanclass属性为代理类MapperFactoryBean
+     * 2、设置 Mapper实例内部的 SqlSessionFactory 对象
+     *
+     * @param beanDefinitions
+     */
     private void processBeanDefinitions(Set<BeanDefinitionHolder> beanDefinitions) {
         GenericBeanDefinition definition;
         for (BeanDefinitionHolder holder : beanDefinitions) {
@@ -153,7 +165,8 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             }
 
             // the mapper interface is the original class of the bean but, the actual class of the bean is MapperFactoryBean
-            definition.getConstructorArgumentValues().addGenericArgumentValue(definition.getBeanClassName()); // issue #59
+            // issue #59
+            definition.getConstructorArgumentValues().addGenericArgumentValue(definition.getBeanClassName());
             // 修改注册类的beanclass属性为代理类MapperFactoryBean
             // 这里修改了mapper接口类的beandefination中的beanclass为MapperFactoryBean，它则负责生产数据类操作代理类，
             // 实际mapper接口类作为构造函数传入了 。由于只修改了beanclass,没有修改beanname，所以我们从容器中获取时候无感知的。
@@ -196,13 +209,23 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
         }
     }
 
-    // 判断这个BeanDefinition是否是一个可以实例化Bean组件
+    /**
+     * 判断这个BeanDefinition是否是一个可以实例化Bean组件
+     *
+     * @param beanDefinition
+     * @return
+     */
     @Override
     protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
         return beanDefinition.getMetadata().isInterface() && beanDefinition.getMetadata().isIndependent();
     }
 
-    // 确定给定的bean定义是否具有候选资格
+    /**
+     * 确定给定的bean定义是否具有候选资格
+     * @param beanName
+     * @param beanDefinition
+     * @return
+     */
     @Override
     protected boolean checkCandidate(String beanName, BeanDefinition beanDefinition) {
         if (super.checkCandidate(beanName, beanDefinition)) {
@@ -217,6 +240,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
 
     // setter ...
+
     public void setAddToConfig(boolean addToConfig) {
         this.addToConfig = addToConfig;
     }

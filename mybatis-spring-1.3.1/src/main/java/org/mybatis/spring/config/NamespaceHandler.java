@@ -18,7 +18,7 @@ package org.mybatis.spring.config;
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 
 /**
- * Namespace handler for the MyBatis namespace.
+ * MyBastic命名空间处理器
  *
  * @author Lishu Luo
  *
@@ -32,6 +32,7 @@ public class NamespaceHandler extends NamespaceHandlerSupport {
      */
     @Override
     public void init() {
+        // 注册<scan>标签扫描的注解解析器
         registerBeanDefinitionParser("scan", new MapperScannerBeanDefinitionParser());
     }
 
