@@ -15,11 +15,6 @@
  */
 package org.mybatis.spring.mapper;
 
-import static org.springframework.util.Assert.notNull;
-
-import java.lang.annotation.Annotation;
-import java.util.Map;
-
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.PropertyValue;
@@ -38,6 +33,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.util.StringUtils;
+
+import java.lang.annotation.Annotation;
+import java.util.Map;
+
+import static org.springframework.util.Assert.notNull;
 
 /**
  * BeanDefinitionRegistryPostProcessor that searches recursively starting from a base package for
@@ -91,23 +91,34 @@ import org.springframework.util.StringUtils;
  * @see MapperFactoryBean
  * @see ClassPathMapperScanner
  */
-// 参考：http://www.importnew.com/27207.html
-public class MapperScannerConfigurer
-        implements BeanDefinitionRegistryPostProcessor, InitializingBean, ApplicationContextAware, BeanNameAware {
+public class MapperScannerConfigurer implements BeanDefinitionRegistryPostProcessor, InitializingBean, ApplicationContextAware, BeanNameAware {
 
-    // 表示mapper接口的报地址，如：com.whz.springmybatis.dao
+    /** 必须配置，表示mapper接口的报地址，如：com.whz.springmybatis.dao，可以配置多个，多个包用","或者";"隔开 */
     private String basePackage;
-    private boolean addToConfig = true;
-    private SqlSessionFactory sqlSessionFactory;
-    private SqlSessionTemplate sqlSessionTemplate;
-    // 表示 SqlSessionFactory Bean的名字
+
+    /** 表示 SqlSessionFactory Bean的名字 */
     private String sqlSessionFactoryBeanName;
+    private SqlSessionFactory sqlSessionFactory;
+
     private String sqlSessionTemplateBeanName;
-    private Class<? extends Annotation> annotationClass;
-    private Class<?> markerInterface;
-    private ApplicationContext applicationContext;
+    private SqlSessionTemplate sqlSessionTemplate;
+
+    /** 表示MapperScannerConfigurer的BeanName, 实现BeanNameAware接口即可获取BeanName */
     private String beanName;
+    /** Spring容器，实现ApplicationContextAware接口即可获得 */
+    private ApplicationContext applicationContext;
+
+    /** 配置是否要将扫描的mapper接口注册到mybatis的Configuration中，一般会一直都是true */
+    private boolean addToConfig = true;
+    /** 如果配置了注解则扫描注解注释的接口 */
+    private Class<? extends Annotation> annotationClass;
+    /** 如果配置了标记接口，则扫描该接口类型的Bean */
+    private Class<?> markerInterface;
+
+
     private boolean processPropertyPlaceHolders;
+
+    /** 用于给扫描包下的Bean，生成BeanName，可以实现BeanNameGenerator接口，来修改生成的BeanName */
     private BeanNameGenerator nameGenerator;
 
 
@@ -127,7 +138,6 @@ public class MapperScannerConfigurer
     // 在完成 BeanDefinition 注册后，实例化bean之前调用，允许修改BeanDefinition的信息，registry用于被ApplicationContext调用
     // 在bean注册到ioc后创建实例前修改bean定义和新增bean注册，这个是在context的refresh方法调用
     // Spring在解析完配置文件后，会调用BeanDefinitionRegistryPostProcessor#postProcessBeanDefinitionRegistry()方法
-    //
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
         if (this.processPropertyPlaceHolders) {
@@ -144,24 +154,20 @@ public class MapperScannerConfigurer
         scanner.setSqlSessionTemplateBeanName(this.sqlSessionTemplateBeanName);
         scanner.setResourceLoader(this.applicationContext);
         scanner.setBeanNameGenerator(this.nameGenerator);
+        // 注册扫描过滤器
         scanner.registerFilters();
-        scanner.scan(StringUtils.tokenizeToStringArray(this.basePackage,
-                                                       ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS));
+        // 开始扫描包下的所有bean
+        scanner.scan(StringUtils.tokenizeToStringArray(this.basePackage, ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS));
     }
     private void processPropertyPlaceHolders() {
-        Map<String, PropertyResourceConfigurer> prcs = applicationContext.getBeansOfType(
-                PropertyResourceConfigurer.class);
+        Map<String, PropertyResourceConfigurer> prcs = applicationContext.getBeansOfType(PropertyResourceConfigurer.class);
 
         if (!prcs.isEmpty() && applicationContext instanceof ConfigurableApplicationContext) {
-            BeanDefinition mapperScannerBean = ((ConfigurableApplicationContext)applicationContext).getBeanFactory()
-                    .getBeanDefinition(beanName);
+            BeanDefinition mapperScannerBean = ((ConfigurableApplicationContext) applicationContext).getBeanFactory().getBeanDefinition(beanName);
 
-            // PropertyResourceConfigurer does not expose any methods to explicitly perform
-            // property placeholder substitution. Instead, create a BeanFactory that just
-            // contains this mapper scanner and post process the factory.
+            // PropertyResourceConfigurer 没有公开任何显式执行属性占位符替换的方法。这里创建一个只包含这个映射器扫描器的BeanFactory，并对工厂进行后处理。
             DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
             factory.registerBeanDefinition(beanName, mapperScannerBean);
-
             for (PropertyResourceConfigurer prc : prcs.values()) {
                 prc.postProcessBeanFactory(factory);
             }

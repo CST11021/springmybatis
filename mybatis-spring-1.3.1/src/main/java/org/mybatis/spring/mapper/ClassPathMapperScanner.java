@@ -15,11 +15,6 @@
  */
 package org.mybatis.spring.mapper;
 
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.util.Arrays;
-import java.util.Set;
-
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
@@ -36,6 +31,11 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.core.type.filter.TypeFilter;
 import org.springframework.util.StringUtils;
+
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.util.Arrays;
+import java.util.Set;
 
 /**
  * A {@link ClassPathBeanDefinitionScanner} that registers Mappers by
@@ -55,11 +55,12 @@ import org.springframework.util.StringUtils;
  */
 public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
+    /** 配置是否要将扫描的mapper接口注册到mybatis的Configuration中，一般会一直都是true */
     private boolean addToConfig = true;
 
-    /** Mybastic的会话工厂，用于创建会话 */
+    /** Mybatis的会话工厂，用于创建会话 */
     private SqlSessionFactory sqlSessionFactory;
-    /** 表示Mybastic会话工厂的Bean名称 */
+    /** 表示Mybatis会话工厂的Bean名称 */
     private String sqlSessionFactoryBeanName;
 
     /** SqlSessionTemplate 实现了Mybatis的SqlSession接口，所以该类可以用于执行增删改查操作 */
@@ -67,7 +68,9 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
     /** SqlSessionTemplate的Bean名称 */
     private String sqlSessionTemplateBeanName;
 
+    /** 如果配置了注解则扫描注解注释的接口 */
     private Class<? extends Annotation> annotationClass;
+    /** 如果配置了标记接口，则扫描该接口类型的Bean */
     private Class<?> markerInterface;
 
     /** MapperFactoryBean是一个Spring的工厂Bean，用于创建Mapper接口的实现类 */
@@ -79,20 +82,18 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
 
     /**
-     * Configures parent scanner to search for the right interfaces. It can search
-     * for all interfaces or just for those that extends a markerInterface or/and
-     * those annotated with the annotationClass
+     * 注册过滤器，如果有配置注解，则扫描注解注释的接口，如果配置了标记接口，则扫描该接口类型的Bean
      */
     public void registerFilters() {
         boolean acceptAllInterfaces = true;
 
-        // if specified, use the given annotation and / or marker interface
+        // 如果有配置注解，则仅扫描注解注释的接口
         if (this.annotationClass != null) {
             addIncludeFilter(new AnnotationTypeFilter(this.annotationClass));
             acceptAllInterfaces = false;
         }
 
-        // override AssignableTypeFilter to ignore matches on the actual marker interface
+        // 如果有配置标记接口，则仅扫描该接口类型的Bean
         if (this.markerInterface != null) {
             addIncludeFilter(new AssignableTypeFilter(this.markerInterface) {
                 @Override
@@ -107,8 +108,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             // default include filter that accepts all classes
             addIncludeFilter(new TypeFilter() {
                 @Override
-                public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory)
-                        throws IOException {
+                public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
                     return true;
                 }
             });
@@ -117,8 +117,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
         // exclude package-info.java
         addExcludeFilter(new TypeFilter() {
             @Override
-            public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory)
-                    throws IOException {
+            public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
                 String className = metadataReader.getClassMetadata().getClassName();
                 return className.endsWith("package-info");
             }
@@ -157,15 +156,14 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
     private void processBeanDefinitions(Set<BeanDefinitionHolder> beanDefinitions) {
         GenericBeanDefinition definition;
         for (BeanDefinitionHolder holder : beanDefinitions) {
-            definition = (GenericBeanDefinition)holder.getBeanDefinition();
+            definition = (GenericBeanDefinition) holder.getBeanDefinition();
 
             if (logger.isDebugEnabled()) {
                 logger.debug("Creating MapperFactoryBean with name '" + holder.getBeanName()
                              + "' and '" + definition.getBeanClassName() + "' mapperInterface");
             }
 
-            // the mapper interface is the original class of the bean but, the actual class of the bean is MapperFactoryBean
-            // issue #59
+            // the mapper interface is the original class of the bean but, the actual class of the bean is MapperFactoryBean issue #59
             definition.getConstructorArgumentValues().addGenericArgumentValue(definition.getBeanClassName());
             // 修改注册类的beanclass属性为代理类MapperFactoryBean
             // 这里修改了mapper接口类的beandefination中的beanclass为MapperFactoryBean，它则负责生产数据类操作代理类，
@@ -173,6 +171,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             definition.setBeanClass(this.mapperFactoryBean.getClass());
             definition.getPropertyValues().add("addToConfig", this.addToConfig);
 
+            // 用于标记是否配置了sqlSessionFactoryBeanName或是sqlSessionTemplateBeanName，如果配置的工厂Bean的Name，则优先使用配置的工厂Bean，否则根据类型注入SqlSessionFactory实例和SqlSessionTemplate实例
             boolean explicitFactoryUsed = false;
 
             // 1、设置Mapper接口对象中的SqlSessionFactory实例，每个Mapper接口的实现都会封装一个SqlSessionFactory
@@ -199,7 +198,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
                 explicitFactoryUsed = true;
             }
 
-            // 3、
+            // 3、如果没有显式引用，就使用类型注入
             if (!explicitFactoryUsed) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Enabling autowire by type for MapperFactoryBean with name '" + holder.getBeanName() + "'.");
@@ -222,6 +221,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
     /**
      * 确定给定的bean定义是否具有候选资格
+     *
      * @param beanName
      * @param beanDefinition
      * @return

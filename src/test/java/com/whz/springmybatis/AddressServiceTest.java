@@ -13,7 +13,7 @@ public class AddressServiceTest {
 
     @Before
     public void init() {
-        context = new ClassPathXmlApplicationContext("classpath:spring_config/applicationContext.xml");
+        context = new ClassPathXmlApplicationContext("classpath:spring-config/applicationContext.xml");
         addressService = (AddressService)context.getBean("addressService");
     }
 

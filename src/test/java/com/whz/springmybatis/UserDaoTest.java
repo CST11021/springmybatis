@@ -11,7 +11,7 @@ public class UserDaoTest {
 
     @Before
     public void init() {
-        context = new ClassPathXmlApplicationContext("spring_config/applicationContext.xml");
+        context = new ClassPathXmlApplicationContext("spring-config/applicationContext.xml");
         userDao = (UserDao)context.getBean("userDao");
     }
 

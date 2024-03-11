@@ -15,10 +15,8 @@
  */
 package org.mybatis.spring.config;
 
-import java.lang.annotation.Annotation;
-
-import org.mybatis.spring.mapper.MapperFactoryBean;
 import org.mybatis.spring.mapper.ClassPathMapperScanner;
+import org.mybatis.spring.mapper.MapperFactoryBean;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanNameGenerator;
@@ -28,6 +26,8 @@ import org.springframework.beans.factory.xml.XmlReaderContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.util.StringUtils;
 import org.w3c.dom.Element;
+
+import java.lang.annotation.Annotation;
 
 /**
  * A {#code BeanDefinitionParser} that handles the element scan of the MyBatis.
@@ -63,8 +63,7 @@ public class MapperScannerBeanDefinitionParser implements BeanDefinitionParser {
             String annotationClassName = element.getAttribute(ATTRIBUTE_ANNOTATION);
             if (StringUtils.hasText(annotationClassName)) {
                 @SuppressWarnings("unchecked")
-                Class<? extends Annotation> markerInterface = (Class<? extends Annotation>)classLoader.loadClass(
-                        annotationClassName);
+                Class<? extends Annotation> markerInterface = (Class<? extends Annotation>)classLoader.loadClass(annotationClassName);
                 scanner.setAnnotationClass(markerInterface);
             }
             String markerInterfaceClassName = element.getAttribute(ATTRIBUTE_MARKER_INTERFACE);

@@ -15,13 +15,13 @@
  */
 package org.mybatis.spring.mapper;
 
-import static org.springframework.util.Assert.notNull;
-
 import org.apache.ibatis.executor.ErrorContext;
 import org.apache.ibatis.session.Configuration;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.support.SqlSessionDaoSupport;
 import org.springframework.beans.factory.FactoryBean;
+
+import static org.springframework.util.Assert.notNull;
 
 /**
  * BeanFactory that enables injection of MyBatis mapper interfaces. It can be set up with a
@@ -52,14 +52,13 @@ import org.springframework.beans.factory.FactoryBean;
  * @see SqlSessionTemplate
  */
 // 能够注入MyBatis mapper接口的BeanFactory。它可以设置为SqlSessionFactory或预配置的SqlSessionTemplate。
-// Mybatis中的Mapper接口，其本质是一个MapperFactoryBean，MapperFactoryBean实现了FactoryBean，所以每个Mapper对象在实例化
-// 的时候会调用FactoryBean#getObject()方法，创建一个Mapper的实例
+// Mybatis中的Mapper接口，其本质是一个MapperFactoryBean，MapperFactoryBean实现了FactoryBean，所以每个Mapper对象在实例化的时候会调用FactoryBean#getObject()方法，创建一个Mapper的实例
 public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements FactoryBean<T> {
 
-    // 表示对应的Mapper接口
+    /** 表示对应的Mapper接口 */
     private Class<T> mapperInterface;
 
-    // 如果addToConfig是false，那么mapper将不会添加到MyBatis中。这意味着它必须包含在mybatisconfig .xml中。
+    /** 如果addToConfig是false，那么mapper将不会添加到MyBatis中。这意味着它必须包含在mybatisconfig.xml中。 */
     private boolean addToConfig = true;
 
     public MapperFactoryBean() {
@@ -90,6 +89,7 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
     }
     @Override
     public T getObject() throws Exception {
+        // 从mybatis的SqlSession实例中，根据mapper接口类型获取对应的mapper接口实例
         return getSqlSession().getMapper(this.mapperInterface);
     }
     @Override
@@ -101,6 +101,10 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
     public boolean isSingleton() {
         return true;
     }
+
+
+
+
 
     // getter and setter ...
     public void setMapperInterface(Class<T> mapperInterface) {

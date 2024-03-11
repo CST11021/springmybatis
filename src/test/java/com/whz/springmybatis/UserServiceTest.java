@@ -17,7 +17,7 @@ public class UserServiceTest {
 
     @Before
     public void init() {
-        context = new ClassPathXmlApplicationContext("spring_config/applicationContext.xml");
+        context = new ClassPathXmlApplicationContext("spring-config/applicationContext.xml");
         userService = (UserService)context.getBean("userService");
     }
 

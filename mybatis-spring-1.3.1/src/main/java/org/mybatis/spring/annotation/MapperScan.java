@@ -15,22 +15,15 @@
  */
 package org.mybatis.spring.annotation;
 
-import java.lang.annotation.Annotation;
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 import org.mybatis.spring.mapper.MapperFactoryBean;
 import org.mybatis.spring.mapper.MapperScannerConfigurer;
 import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.context.annotation.Import;
 
+import java.lang.annotation.*;
+
 /**
- * Use this annotation to register MyBatis mapper interfaces when using Java
- * Config. It performs when same work as {@link MapperScannerConfigurer} via
- * {@link MapperScannerRegistrar}.
+ * 在使用Java Config时，使用该注释来注册MyBatis映射器接口。它通过{@link MapperScannerRegistrar}执行与{@link MapperScannerConfigurer}相同的工作。
  *
  * <p>Configuration example:</p>
  * <pre class="code">
@@ -72,73 +65,31 @@ import org.springframework.context.annotation.Import;
 @Import(MapperScannerRegistrar.class)
 public @interface MapperScan {
 
-    /**
-     * Alias for the {@link #basePackages()} attribute. Allows for more concise
-     * annotation declarations e.g.:
-     * {@code @EnableMyBatisMapperScanner("org.my.pkg")} instead of {@code
-     * @EnableMyBatisMapperScanner(basePackages= "org.my.pkg"})}.
-     */
+    /** 配置扫描的dao层的包路径，作用同 basePackages 属性，basePackages可以配置的多个包路径 */
     String[] value() default {};
 
-    /**
-     * Base packages to scan for MyBatis interfaces. Note that only interfaces
-     * with at least one method will be registered; concrete classes will be
-     * ignored.
-     */
+    /** 配置扫描的dao层的包路径 */
     String[] basePackages() default {};
 
-    /**
-     * Type-safe alternative to {@link #basePackages()} for specifying the packages
-     * to scan for annotated components. The package of each class specified will be scanned.
-     * <p>Consider creating a special no-op marker class or interface in each package
-     * that serves no purpose other than being referenced by this attribute.
-     */
+    /** 配置扫描特定的mapper接口 */
     Class<?>[] basePackageClasses() default {};
 
-    /**
-     * The {@link BeanNameGenerator} class to be used for naming detected components
-     * within the Spring container.
-     */
-    Class<? extends BeanNameGenerator> nameGenerator() default BeanNameGenerator.class;
-
-    /**
-     * This property specifies the annotation that the scanner will search for.
-     * <p>
-     * The scanner will register all interfaces in the base package that also have
-     * the specified annotation.
-     * <p>
-     * Note this can be combined with markerInterface.
-     */
+    /** 配置要扫描的mapper接口，被该注解修饰的接口才可以生成bean，该配置可以和markerInterface结合使用 */
     Class<? extends Annotation> annotationClass() default Annotation.class;
 
-    /**
-     * This property specifies the parent that the scanner will search for.
-     * <p>
-     * The scanner will register all interfaces in the base package that also have
-     * the specified interface class as a parent.
-     * <p>
-     * Note this can be combined with annotationClass.
-     */
+    /** 配置要扫描的mapper接口，该接口类的子类才可以生成bean，该配置可以和annotationClass结合使用 */
     Class<?> markerInterface() default Class.class;
 
-    /**
-     * Specifies which {@code SqlSessionTemplate} to use in the case that there is
-     * more than one in the spring context. Usually this is only needed when you
-     * have more than one datasource.
-     */
+    /** 配置执行SQL依赖的SqlSessionTemplate，SqlSessionTemplate实现了Mybatis的SqlSession接口 */
     String sqlSessionTemplateRef() default "";
 
-    /**
-     * Specifies which {@code SqlSessionFactory} to use in the case that there is
-     * more than one in the spring context. Usually this is only needed when you
-     * have more than one datasource.
-     */
+    /** 配置生成代理类依赖的SqlSessionFactory */
     String sqlSessionFactoryRef() default "";
 
-    /**
-     * Specifies a custom MapperFactoryBean to return a mybatis proxy as spring bean.
-     *
-     */
+    /** {@link BeanNameGenerator}类用于命名Spring容器中检测到的组件。 */
+    Class<? extends BeanNameGenerator> nameGenerator() default BeanNameGenerator.class;
+
+    /** 配置生成Mapper接口代理实现的工厂Bean，默认使用MapperFactoryBean实现 */
     Class<? extends MapperFactoryBean> factoryBean() default MapperFactoryBean.class;
 
 }

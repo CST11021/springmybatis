@@ -12,35 +12,18 @@
     <context:component-scan base-package="com.whz.springmybatis"/>
 
     <!-- 数据源配置 -->
-    <bean name="dataSource"
-          class="org.springframework.jdbc.datasource.DriverManagerDataSource">
-        <property name="driverClassName">
-            <value>com.mysql.jdbc.Driver</value>
-        </property>
-        <property name="url">
-            <value>jdbc:mysql://127.0.0.1:3306/test?useUnicode=true&amp;characterEncoding=UTF-8</value>
-        </property>
-        <property name="username">
-            <value>root</value>
-        </property>
-        <property name="password">
-            <value>123456</value>
-        </property>
+    <bean name="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName"><value>com.mysql.jdbc.Driver</value></property>
+        <property name="url"><value>jdbc:mysql://127.0.0.1:3306/test?useUnicode=true&amp;characterEncoding=UTF-8</value></property>
+        <property name="username"><value>root</value></property>
+        <property name="password"><value>123456</value></property>
     </bean>
 
     <!-- MyBatis SqlSession配置 -->
     <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
         <property name="dataSource" ref="dataSource"/>
-        <property name="configLocation" value="classpath:mybatis_config/Configuration.xml"></property>
+        <property name="configLocation" value="classpath:mybatis-config/Configuration.xml"></property>
     </bean>
-
-
-    <!--1.0.0-RC2版本及以下低版本的mybatis-spring.jar包使用这种方式注入mapper，同时每个Mapper接口需添加@Mapper注解，高版本的包中删除了@Mapper注解-->
-    <!-- 低版本的mybatis配置文件和高版本的有一些细节上的区别，比如：在高版本配置<setting name="logImpl" value="SLF4J"/>，低版本没有改配置，如果配置了会报错-->
-    <!--<bean class="org.mybatis.spring.annotation.MapperScannerPostProcessor">-->
-        <!--<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>-->
-        <!--<property name="basePackage" value="com.whz.springmybatis.dao"/>-->
-    <!--</bean>-->
 
 
     <!--方法一：DAO接口所在包名，Spring会自动查找其下的类-->
@@ -59,7 +42,13 @@
         <!--<property name="mapperInterface" value="com.whz.springmybatis.dao.AddressDao"></property>-->
     <!--</bean>-->
 
-
+    <!--方法三：低版本的使用MapperScannerPostProcessor来配置mapper接口-->
+    <!--1.0.0-RC2版本及以下低版本的mybatis-spring.jar包使用这种方式注入mapper，同时每个Mapper接口需添加@Mapper注解，高版本的包中删除了@Mapper注解-->
+    <!-- 低版本的mybatis配置文件和高版本的有一些细节上的区别，比如：在高版本配置<setting name="logImpl" value="SLF4J"/>，低版本没有改配置，如果配置了会报错-->
+    <!--<bean class="org.mybatis.spring.annotation.MapperScannerPostProcessor">-->
+    <!--<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>-->
+    <!--<property name="basePackage" value="com.whz.springmybatis.dao"/>-->
+    <!--</bean>-->
 
 
 

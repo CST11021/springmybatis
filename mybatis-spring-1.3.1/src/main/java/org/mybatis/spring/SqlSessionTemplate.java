@@ -15,12 +15,12 @@
  */
 package org.mybatis.spring;
 
-import static java.lang.reflect.Proxy.newProxyInstance;
-import static org.apache.ibatis.reflection.ExceptionUtil.unwrapThrowable;
-import static org.mybatis.spring.SqlSessionUtils.closeSqlSession;
-import static org.mybatis.spring.SqlSessionUtils.getSqlSession;
-import static org.mybatis.spring.SqlSessionUtils.isSqlSessionTransactional;
-import static org.springframework.util.Assert.notNull;
+import org.apache.ibatis.cursor.Cursor;
+import org.apache.ibatis.exceptions.PersistenceException;
+import org.apache.ibatis.executor.BatchResult;
+import org.apache.ibatis.session.*;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.dao.support.PersistenceExceptionTranslator;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -28,17 +28,10 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.ibatis.cursor.Cursor;
-import org.apache.ibatis.exceptions.PersistenceException;
-import org.apache.ibatis.executor.BatchResult;
-import org.apache.ibatis.session.Configuration;
-import org.apache.ibatis.session.ExecutorType;
-import org.apache.ibatis.session.ResultHandler;
-import org.apache.ibatis.session.RowBounds;
-import org.apache.ibatis.session.SqlSession;
-import org.apache.ibatis.session.SqlSessionFactory;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.dao.support.PersistenceExceptionTranslator;
+import static java.lang.reflect.Proxy.newProxyInstance;
+import static org.apache.ibatis.reflection.ExceptionUtil.unwrapThrowable;
+import static org.mybatis.spring.SqlSessionUtils.*;
+import static org.springframework.util.Assert.notNull;
 
 /**
  * Thread safe, Spring managed, {@code SqlSession} that works with Spring
@@ -77,13 +70,14 @@ import org.springframework.dao.support.PersistenceExceptionTranslator;
 // SqlSessionTemplate 实现了 SqlSession 接口，所以该类可以用于执行增删改查的功能
 public class SqlSessionTemplate implements SqlSession, DisposableBean {
 
+    /** mybatis的SqlSessionFactory */
     private final SqlSessionFactory sqlSessionFactory;
 
     private final ExecutorType executorType;
 
-    private final SqlSession sqlSessionProxy;
-
     private final PersistenceExceptionTranslator exceptionTranslator;
+
+    private final SqlSession sqlSessionProxy;
 
 
     public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory) {
@@ -91,11 +85,9 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
     }
     public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory, ExecutorType executorType) {
         this(sqlSessionFactory, executorType,
-             new MyBatisExceptionTranslator(sqlSessionFactory.getConfiguration().getEnvironment().getDataSource(),
-                                            true));
+             new MyBatisExceptionTranslator(sqlSessionFactory.getConfiguration().getEnvironment().getDataSource(), true));
     }
-    public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory, ExecutorType executorType,
-                              PersistenceExceptionTranslator exceptionTranslator) {
+    public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory, ExecutorType executorType, PersistenceExceptionTranslator exceptionTranslator) {
 
         notNull(sqlSessionFactory, "Property 'sqlSessionFactory' is required");
         notNull(executorType, "Property 'executorType' is required");
@@ -103,7 +95,7 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
         this.sqlSessionFactory = sqlSessionFactory;
         this.executorType = executorType;
         this.exceptionTranslator = exceptionTranslator;
-        this.sqlSessionProxy = (SqlSession)newProxyInstance(SqlSessionFactory.class.getClassLoader(),
+        this.sqlSessionProxy = (SqlSession) newProxyInstance(SqlSessionFactory.class.getClassLoader(),
                                                             new Class[] {SqlSession.class},
                                                             new SqlSessionInterceptor());
     }
@@ -120,89 +112,119 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
         return this.exceptionTranslator;
     }
 
+
+
     /**
-     * {@inheritDoc}
+     * Allow gently dispose bean:
+     * <pre>
+     * {@code
+     *
+     * <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+     *  <constructor-arg index="0" ref="sqlSessionFactory" />
+     * </bean>
+     * }
+     *</pre>
+     *
+     * The implementation of {@link DisposableBean} forces spring context to use {@link DisposableBean#destroy()} method instead of {@link SqlSessionTemplate#close()} to shutdown gently.
+     *
+     * @see SqlSessionTemplate#close()
+     * @see org.springframework.beans.factory.support.DisposableBeanAdapter#inferDestroyMethodIfNecessary
+     * @see org.springframework.beans.factory.support.DisposableBeanAdapter#CLOSE_METHOD_NAME
      */
+    @Override
+    public void destroy() throws Exception {
+        //This method forces spring disposer to avoid call of SqlSessionTemplate.close() which gives UnsupportedOperationException
+    }
+
+    /**
+     * Proxy needed to route MyBatis method calls to the proper SqlSession got
+     * from Spring's Transaction Manager
+     * It also unwraps exceptions thrown by {@code Method#invoke(Object, Object...)} to
+     * pass a {@code PersistenceException} to the {@code PersistenceExceptionTranslator}.
+     */
+    private class SqlSessionInterceptor implements InvocationHandler {
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            SqlSession sqlSession = getSqlSession(SqlSessionTemplate.this.sqlSessionFactory,
+                                                  SqlSessionTemplate.this.executorType,
+                                                  SqlSessionTemplate.this.exceptionTranslator);
+
+            try {
+                Object result = method.invoke(sqlSession, args);
+                if (!isSqlSessionTransactional(sqlSession, SqlSessionTemplate.this.sqlSessionFactory)) {
+                    // 即使在非脏会话上也强制提交，因为一些数据库在调用close()之前需要提交/回滚。
+                    sqlSession.commit(true);
+                }
+                return result;
+            } catch (Throwable t) {
+                Throwable unwrapped = unwrapThrowable(t);
+                if (SqlSessionTemplate.this.exceptionTranslator != null && unwrapped instanceof PersistenceException) {
+                    // release the connection to avoid a deadlock if the translator is no loaded. See issue #22
+                    closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
+                    sqlSession = null;
+                    Throwable translated = SqlSessionTemplate.this.exceptionTranslator.translateExceptionIfPossible(
+                            (PersistenceException)unwrapped);
+                    if (translated != null) {
+                        unwrapped = translated;
+                    }
+                }
+                throw unwrapped;
+            } finally {
+                if (sqlSession != null) {
+                    closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
+                }
+            }
+        }
+    }
+
+
+
+
+
+
+
+    // 实现SqlSession接口
+
     @Override
     public <T> T selectOne(String statement) {
         return this.sqlSessionProxy.<T>selectOne(statement);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <T> T selectOne(String statement, Object parameter) {
         return this.sqlSessionProxy.<T>selectOne(statement, parameter);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <K, V> Map<K, V> selectMap(String statement, String mapKey) {
         return this.sqlSessionProxy.<K, V>selectMap(statement, mapKey);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey) {
         return this.sqlSessionProxy.<K, V>selectMap(statement, parameter, mapKey);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey, RowBounds rowBounds) {
         return this.sqlSessionProxy.<K, V>selectMap(statement, parameter, mapKey, rowBounds);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <T> Cursor<T> selectCursor(String statement) {
         return this.sqlSessionProxy.selectCursor(statement);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <T> Cursor<T> selectCursor(String statement, Object parameter) {
         return this.sqlSessionProxy.selectCursor(statement, parameter);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <T> Cursor<T> selectCursor(String statement, Object parameter, RowBounds rowBounds) {
         return this.sqlSessionProxy.selectCursor(statement, parameter, rowBounds);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <E> List<E> selectList(String statement) {
         return this.sqlSessionProxy.<E>selectList(statement);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <E> List<E> selectList(String statement, Object parameter) {
         return this.sqlSessionProxy.<E>selectList(statement, parameter);
     }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
         return this.sqlSessionProxy.<E>selectList(statement, parameter, rowBounds);
@@ -284,67 +306,5 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
         return this.sqlSessionProxy.flushStatements();
     }
 
-    /**
-     * Allow gently dispose bean:
-     * <pre>
-     * {@code
-     *
-     * <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
-     *  <constructor-arg index="0" ref="sqlSessionFactory" />
-     * </bean>
-     * }
-     *</pre>
-     *
-     * The implementation of {@link DisposableBean} forces spring context to use {@link DisposableBean#destroy()} method instead of {@link SqlSessionTemplate#close()} to shutdown gently.
-     *
-     * @see SqlSessionTemplate#close()
-     * @see org.springframework.beans.factory.support.DisposableBeanAdapter#inferDestroyMethodIfNecessary
-     * @see org.springframework.beans.factory.support.DisposableBeanAdapter#CLOSE_METHOD_NAME
-     */
-    @Override
-    public void destroy() throws Exception {
-        //This method forces spring disposer to avoid call of SqlSessionTemplate.close() which gives UnsupportedOperationException
-    }
-
-    /**
-     * Proxy needed to route MyBatis method calls to the proper SqlSession got
-     * from Spring's Transaction Manager
-     * It also unwraps exceptions thrown by {@code Method#invoke(Object, Object...)} to
-     * pass a {@code PersistenceException} to the {@code PersistenceExceptionTranslator}.
-     */
-    private class SqlSessionInterceptor implements InvocationHandler {
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            SqlSession sqlSession = getSqlSession(SqlSessionTemplate.this.sqlSessionFactory,
-                                                  SqlSessionTemplate.this.executorType,
-                                                  SqlSessionTemplate.this.exceptionTranslator);
-            try {
-                Object result = method.invoke(sqlSession, args);
-                if (!isSqlSessionTransactional(sqlSession, SqlSessionTemplate.this.sqlSessionFactory)) {
-                    // force commit even on non-dirty sessions because some databases require
-                    // a commit/rollback before calling close()
-                    sqlSession.commit(true);
-                }
-                return result;
-            } catch (Throwable t) {
-                Throwable unwrapped = unwrapThrowable(t);
-                if (SqlSessionTemplate.this.exceptionTranslator != null && unwrapped instanceof PersistenceException) {
-                    // release the connection to avoid a deadlock if the translator is no loaded. See issue #22
-                    closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
-                    sqlSession = null;
-                    Throwable translated = SqlSessionTemplate.this.exceptionTranslator.translateExceptionIfPossible(
-                            (PersistenceException)unwrapped);
-                    if (translated != null) {
-                        unwrapped = translated;
-                    }
-                }
-                throw unwrapped;
-            } finally {
-                if (sqlSession != null) {
-                    closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
-                }
-            }
-        }
-    }
 
 }

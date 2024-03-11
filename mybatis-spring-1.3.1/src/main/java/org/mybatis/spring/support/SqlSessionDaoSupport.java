@@ -15,12 +15,12 @@
  */
 package org.mybatis.spring.support;
 
-import static org.springframework.util.Assert.notNull;
-
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.dao.support.DaoSupport;
+
+import static org.springframework.util.Assert.notNull;
 
 /**
  * Convenient super class for MyBatis SqlSession data access objects.
@@ -40,6 +40,7 @@ import org.springframework.dao.support.DaoSupport;
  */
 public abstract class SqlSessionDaoSupport extends DaoSupport {
 
+    /** mybatis的SqlSession */
     private SqlSession sqlSession;
 
     private boolean externalSqlSession;

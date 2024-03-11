@@ -16,7 +16,7 @@ public class ApplicationDataBaseInit implements ServletContextListener {
 
     {
         try {
-            ApplicationContext context = new ClassPathXmlApplicationContext("spring_config/applicationContext.xml");
+            ApplicationContext context = new ClassPathXmlApplicationContext("spring-config/applicationContext.xml");
             DataSource dataSource = (DataSource)context.getBean("dataSource");
             con = dataSource.getConnection();
         } catch (Exception e) {

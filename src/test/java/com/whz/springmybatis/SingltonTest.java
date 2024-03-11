@@ -11,7 +11,7 @@ public class SingltonTest {
 
     @Before
     public void init() {
-        context = new ClassPathXmlApplicationContext("spring_config/applicationContext-mvc.xml");
+        context = new ClassPathXmlApplicationContext("spring-config/applicationContext-mvc.xml");
         userController = (UserController)context.getBean("UserController");
     }
 

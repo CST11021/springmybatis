@@ -15,10 +15,6 @@
  */
 package org.mybatis.spring.annotation;
 
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.mybatis.spring.mapper.ClassPathMapperScanner;
 import org.mybatis.spring.mapper.MapperFactoryBean;
 import org.springframework.beans.BeanUtils;
@@ -31,6 +27,10 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
+
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A {@link ImportBeanDefinitionRegistrar} to allow annotation configuration of
@@ -49,14 +49,10 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
 
     private ResourceLoader resourceLoader;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
 
-        AnnotationAttributes annoAttrs = AnnotationAttributes.fromMap(
-                importingClassMetadata.getAnnotationAttributes(MapperScan.class.getName()));
+        AnnotationAttributes annoAttrs = AnnotationAttributes.fromMap(importingClassMetadata.getAnnotationAttributes(MapperScan.class.getName()));
         ClassPathMapperScanner scanner = new ClassPathMapperScanner(registry);
 
         // this check is needed in Spring 3.1
@@ -105,9 +101,6 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
         scanner.doScan(StringUtils.toStringArray(basePackages));
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void setResourceLoader(ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
